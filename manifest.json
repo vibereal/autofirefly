@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Firefly Boost - Automation",
+  "version": "1.1",
+  "description": "Automate prompt generation and downloading on Adobe Firefly.",
+  "permissions": [
+    "sidePanel",
+    "scripting",
+    "activeTab",
+    "tabs",
+    "storage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://firefly.adobe.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Firefly Boost"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://firefly.adobe.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
