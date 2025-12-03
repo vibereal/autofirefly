@@ -23,11 +23,11 @@ const progressFill = document.getElementById('progressFill');
 function addLog(message, type = 'info') {
   const div = document.createElement('div');
   div.className = `log-item log-${type}`;
-  
+
   // Simple timestamp
   const time = new Date().toLocaleTimeString([], { hour12: false });
   div.innerText = `[${time}] ${message}`;
-  
+
   logContainer.appendChild(div);
   logContainer.scrollTop = logContainer.scrollHeight;
 }
@@ -79,11 +79,11 @@ fileInput.addEventListener('change', (e) => {
     prompts = text.split(/\r?\n/).filter(line => line.trim() !== '');
     promptPreview.value = prompts.join('\n');
     currentIndex = 0;
-    
+
     // Reset states
     isRunning = false;
     isPaused = false;
-    
+
     updateProgress();
     updateControls();
     addLog(`Loaded ${prompts.length} prompts.`, 'info');
@@ -141,11 +141,11 @@ resetBtn.addEventListener('click', () => {
   isPaused = false;
   currentIndex = 0;
   prompts = [];
-  
+
   fileInput.value = '';
   promptPreview.value = '';
   logContainer.innerHTML = '';
-  
+
   updateProgress();
   updateControls();
   addLog('Reset complete.', 'info');
@@ -176,7 +176,7 @@ async function runAutomation() {
 
 async function processQueue(tabId) {
   while (isRunning && currentIndex < prompts.length) {
-    
+
     // Check pause state again at start of loop
     if (isPaused) {
       isRunning = false;
@@ -186,14 +186,14 @@ async function processQueue(tabId) {
 
     const currentPrompt = prompts[currentIndex];
     updateProgress();
-    
+
     // addLog(`Prompt ${currentIndex + 1}: "${currentPrompt.substring(0, 30)}..."`, 'info');
 
     try {
       // Execute in content script
-      const response = await chrome.tabs.sendMessage(tabId, { 
-        action: "PROCESS_PROMPT", 
-        prompt: currentPrompt 
+      const response = await chrome.tabs.sendMessage(tabId, {
+        action: "PROCESS_PROMPT",
+        prompt: currentPrompt
       });
 
       if (response && response.status === "success") {
@@ -204,13 +204,13 @@ async function processQueue(tabId) {
 
     } catch (error) {
       if (error.message.includes('Receiving end does not exist')) {
-         addLog('Lost connection to page. Refresh Firefly & Restart.', 'error');
-         isRunning = false;
-         isPaused = false;
-         updateControls();
-         return;
+        addLog('Lost connection to page. Refresh Firefly & Restart.', 'error');
+        isRunning = false;
+        isPaused = false;
+        updateControls();
+        return;
       } else {
-         addLog(`Error: ${error.message}`, 'error');
+        addLog(`Error: ${error.message}`, 'error');
       }
     }
 

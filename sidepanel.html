@@ -1,59 +1,172 @@
-
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Firefly Boost</title>
   <link href="styles.css" rel="stylesheet">
   <style>
-    body { width: 100%; height: 100vh; overflow-x: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .container { padding: 16px; display: flex; flex-direction: column; gap: 12px; height: 100%; }
-    
+    body {
+      width: 100%;
+      height: 100vh;
+      overflow-x: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+    }
+
     /* Button Styles */
     .btn {
-      padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
-      transition: background 0.2s, opacity 0.2s; flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: background 0.2s, opacity 0.2s;
+      flex: 1;
     }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary { background: #2563eb; color: white; }
-    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
-    
-    .btn-success { background: #10b981; color: white; }
-    .btn-success:hover:not(:disabled) { background: #059669; }
 
-    .btn-warning { background: #f59e0b; color: white; }
-    .btn-warning:hover:not(:disabled) { background: #d97706; }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-    .btn-danger { background: #ef4444; color: white; }
-    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
 
-    .btn-secondary { background: #6b7280; color: white; }
-    .btn-secondary:hover:not(:disabled) { background: #4b5563; }
-    
+    .btn-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-warning:hover:not(:disabled) {
+      background: #d97706;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #4b5563;
+    }
+
     .log-container {
-      flex: 1; background: #f9fafb; border-radius: 6px; padding: 10px;
-      overflow-y: auto; font-family: monospace; font-size: 11px; border: 1px solid #e5e7eb;
+      flex: 1;
+      background: #f9fafb;
+      border-radius: 6px;
+      padding: 10px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      border: 1px solid #e5e7eb;
       white-space: pre-wrap;
     }
-    .log-item { margin-bottom: 4px; border-bottom: 1px solid #f3f4f6; padding-bottom: 2px; }
-    .log-success { color: #059669; }
-    .log-error { color: #dc2626; }
-    .log-info { color: #4b5563; }
-    .log-step { color: #2563eb; font-style: italic; }
-    
-    textarea { width: 100%; height: 80px; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-family: sans-serif; resize: vertical; font-size: 11px; }
-    
-    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-    .logo { font-size: 16px; font-weight: bold; background: linear-gradient(to right, #ff512f, #dd2476); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    
-    .progress-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 5px; }
-    .progress-fill { height: 100%; background: #2563eb; width: 0%; transition: width 0.3s; }
+
+    .log-item {
+      margin-bottom: 4px;
+      border-bottom: 1px solid #f3f4f6;
+      padding-bottom: 2px;
+    }
+
+    .log-success {
+      color: #059669;
+    }
+
+    .log-error {
+      color: #dc2626;
+    }
+
+    .log-info {
+      color: #4b5563;
+    }
+
+    .log-step {
+      color: #2563eb;
+      font-style: italic;
+    }
+
+    textarea {
+      width: 100%;
+      height: 80px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: sans-serif;
+      resize: vertical;
+      font-size: 11px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .logo {
+      font-size: 16px;
+      font-weight: bold;
+      background: linear-gradient(to right, #ff512f, #dd2476);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #2563eb;
+      width: 0%;
+      transition: width 0.3s;
+    }
 
     .controls-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="header">
@@ -62,12 +175,14 @@
     </div>
 
     <div>
-      <label style="font-size: 11px; font-weight: bold; color: #374151; display: block; margin-bottom: 4px;">1. Load Prompts (.txt)</label>
+      <label style="font-size: 11px; font-weight: bold; color: #374151; display: block; margin-bottom: 4px;">1. Load
+        Prompts (.txt)</label>
       <input type="file" id="fileInput" accept=".txt" style="width: 100%; font-size: 11px;">
     </div>
 
     <div>
-      <label style="font-size: 11px; font-weight: bold; color: #374151; display: block; margin-bottom: 4px;">Preview (<span id="totalCount">0</span> prompts)</label>
+      <label style="font-size: 11px; font-weight: bold; color: #374151; display: block; margin-bottom: 4px;">Preview
+        (<span id="totalCount">0</span> prompts)</label>
       <textarea id="promptPreview" readonly placeholder="Prompts will appear here..."></textarea>
     </div>
 
@@ -94,4 +209,5 @@
   </div>
   <script src="sidepanel.js"></script>
 </body>
+
 </html>

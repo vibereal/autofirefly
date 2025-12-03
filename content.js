@@ -1,8 +1,7 @@
-
 // --- UTILS ---
 
 function sendLog(message, type = 'step') {
-    chrome.runtime.sendMessage({ action: "LOG", message, type }).catch(() => {});
+    chrome.runtime.sendMessage({ action: "LOG", message, type }).catch(() => { });
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -54,7 +53,7 @@ function queryAllDeepShadow(selector, root = document.body) {
             results = results.concat(queryAllDeepShadow(selector, el.shadowRoot));
         }
     }
-    
+
     return results;
 }
 
@@ -63,46 +62,49 @@ function queryAllDeepShadow(selector, root = document.body) {
 async function typeText(element, text) {
     element.focus();
     element.value = "";
-    
+
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-    
+
     sendLog("Typing prompt...", 'info');
     for (const char of text) {
         const currentVal = element.value;
         nativeInputValueSetter.call(element, currentVal + char);
-        
-        const event = new Event('input', { bubbles: true});
+
+        const event = new Event('input', { bubbles: true });
         element.dispatchEvent(event);
-        
-        // Random delay (Human-like typing)
-        const delay = Math.floor(Math.random() * 40) + 10;
+
+        const delay = Math.floor(Math.random() * 20) + 5;
         await sleep(delay);
     }
 }
 
 async function setPrompt(text) {
-  const textArea = queryDeepShadow('textarea[aria-label="Prompt"]');
-  if (!textArea) throw new Error("Prompt textarea not found");
-  
-  await typeText(textArea, text);
-  await sleep(500);
+    const textArea = queryDeepShadow('textarea[aria-label="Prompt"]');
+    if (!textArea) throw new Error("Prompt textarea not found");
+
+    await typeText(textArea, text);
+    await sleep(500);
 }
 
 async function clickGenerate() {
-  let btn = queryDeepShadow('[data-testid="generate-image-generate-button"]');
-  if (!btn) btn = queryDeepShadow('[data-testid="refresh-button"]');
-  if (!btn) btn = queryDeepShadow('firefly-image-generation-generate-button button');
+    let btn = queryDeepShadow('[data-testid="generate-image-generate-button"]');
+    if (!btn) btn = queryDeepShadow('[data-testid="refresh-button"]');
+    if (!btn) btn = queryDeepShadow('button[aria-label="Generate"]');
 
-  if (!btn) throw new Error("Generate button not found");
-  
-  btn.click();
-  // sendLog("Clicked Generate.", 'info'); // Optional, merged with typing log flow
+    if (!btn) {
+        const buttons = queryAllDeepShadow('button');
+        btn = buttons.find(b => b.innerText.trim().toLowerCase() === 'generate');
+    }
+
+    if (!btn) throw new Error("Generate button not found");
+
+    btn.click();
 }
 
 async function handleContentCredentials() {
     const continueBtn = queryDeepShadow('.cai-modal sp-button[variant="accent"]');
     const confirmBtn = queryDeepShadow('sp-dialog sp-button[variant="primary"]');
-    
+
     if (continueBtn && continueBtn.offsetParent !== null) {
         continueBtn.click();
         await sleep(500);
@@ -113,38 +115,65 @@ async function handleContentCredentials() {
 }
 
 /**
- * Helper: Mencoba klik tombol download pada suatu elemen batch
- * Mengembalikan jumlah gambar yang berhasil diklik (0 jika gagal)
+ * Helper: Mencoba klik tombol download
  */
-async function attemptDownloadOnBatch(batchElement) {
-    if (!batchElement) return 0;
+async function attemptDownload(promptText) {
+    sendLog("Scanning for download buttons...", 'info');
 
-    // A. Cek Tombol "Download All"
-    const downloadAllBtn = queryDeepShadow('[data-testid="batch-action-downloadAll"]', batchElement);
-    if (downloadAllBtn) {
-        sendLog("Downloading image...", 'info');
-        downloadAllBtn.click();
+    // 1. Cari tombol "Download All" (Prioritas Utama)
+    const downloadAllBtns = queryAllDeepShadow('button');
+    const dlAll = downloadAllBtns.find(b => {
+        const label = (b.getAttribute('aria-label') || "").toLowerCase();
+        return label.includes('download all') || label.includes('unduh semua');
+    });
+
+    if (dlAll) {
+        sendLog("Found 'Download All' button.", 'success');
+        dlAll.click();
         await handleContentCredentials();
-        return 4; // Asumsi batch penuh
+        return 4;
     }
 
-    // B. Cek Tombol Individual
-    // Selector spesifik berdasarkan HTML yang diberikan user
-    const individualBtns = queryAllDeepShadow('[data-testid="thumbnail-button-download"]', batchElement);
-    
-    if (individualBtns.length > 0) {
-        sendLog("Downloading image...", 'info');
-        
+    // 2. Cari tombol Download individual
+    // Kita perlu trigger hover pada gambar dulu karena tombol seringkali hidden
+    const images = queryAllDeepShadow('img');
+    const relevantImages = images.filter(img => img.src.startsWith('http') && img.width > 100); // Filter icon kecil
+
+    if (relevantImages.length > 0) {
+        sendLog(`Hovering over ${relevantImages.length} potential images...`, 'step');
+        for (const img of relevantImages) {
+            // Simulate Hover
+            img.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            img.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        }
+        await sleep(1000); // Tunggu tombol muncul
+    }
+
+    // Sekarang cari tombol
+    const allButtons = queryAllDeepShadow('button');
+    const downloadBtns = allButtons.filter(b => {
+        const label = (b.getAttribute('aria-label') || "").toLowerCase();
+        const testId = (b.getAttribute('data-testid') || "").toLowerCase();
+        return label.includes('download') || label.includes('unduh') || testId.includes('download');
+    });
+
+    const visibleDlBtns = downloadBtns.filter(b => b.offsetParent !== null);
+
+    if (visibleDlBtns.length > 0) {
+        sendLog(`Found ${visibleDlBtns.length} download buttons.`, 'info');
+
         let successCount = 0;
-        for (const btn of individualBtns) {
+        for (const btn of visibleDlBtns) {
             try {
                 btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                await sleep(200);
+                await sleep(300);
                 btn.click();
                 successCount++;
                 await handleContentCredentials();
-                await sleep(1000); 
-            } catch (e) {}
+                await sleep(1500);
+            } catch (e) {
+                console.error("Click failed", e);
+            }
         }
         return successCount;
     }
@@ -153,81 +182,87 @@ async function attemptDownloadOnBatch(batchElement) {
 }
 
 /**
+ * Mengecek apakah gambar sudah muncul (Hybrid Strategy)
+ */
+function checkGenerationStatus(promptText, initialImageCount) {
+    const images = queryAllDeepShadow('img');
+    const currentImageCount = images.length;
+
+    // 1. Cek Prompt Match (Paling Akurat)
+    const searchKey = promptText.substring(0, 15).toLowerCase();
+    const matched = images.some(img => {
+        const alt = (img.alt || "").toLowerCase();
+        return alt.includes(searchKey) && img.src.startsWith('http');
+    });
+
+    if (matched) return { ready: true, reason: "matched_prompt" };
+
+    // 2. Cek Count Increase (Fallback)
+    // Jika jumlah gambar bertambah signifikan (misal +4), anggap selesai
+    if (currentImageCount >= initialImageCount + 4) {
+        return { ready: true, reason: "count_increase" };
+    }
+
+    return { ready: false, count: currentImageCount };
+}
+
+/**
  * Fungsi Utama: Polling dengan Log Periodik dan Fallback Timeout
  */
-async function pollAndDownload(initialBatchCount, timeoutMs = 30000) { // 30 Detik Timeout
+async function pollAndDownload(promptText, initialImageCount, timeoutMs = 45000) {
     const startTime = Date.now();
-    let nextLogTime = 0; // Trigger log pertama kali
-    
+    let nextLogTime = 0;
+
     return new Promise((resolve, reject) => {
         const interval = setInterval(async () => {
             const now = Date.now();
             const elapsed = now - startTime;
-            
-            const currentBatches = queryAllDeepShadow('firefly-image-generation-batch');
-            const newestBatch = currentBatches[currentBatches.length - 1];
-            
-            // Cek apakah ada indikator keberhasilan (batch bertambah & ada tombol)
-            // Kita lakukan "Dry Run" query dulu sebelum eksekusi klik
-            let isReady = false;
-            
-            if (currentBatches.length > initialBatchCount && newestBatch) {
-                 const dlAll = queryDeepShadow('[data-testid="batch-action-downloadAll"]', newestBatch);
-                 const dlInd = queryAllDeepShadow('[data-testid="thumbnail-button-download"]', newestBatch);
-                 if (dlAll || dlInd.length > 0) {
-                     isReady = true;
-                 }
+
+            const status = checkGenerationStatus(promptText, initialImageCount);
+
+            if (status.ready) {
+                clearInterval(interval);
+                sendLog(`Image Generated! (${status.reason})`, 'success');
+
+                // 1. Wait 5 seconds as requested
+                sendLog("Waiting 5s for UI stability...", 'step');
+                await sleep(5000);
+
+                // 2. Retry 3x
+                for (let i = 1; i <= 3; i++) {
+                    sendLog(`Attempting download (Try ${i}/3)...`, 'info');
+                    const count = await attemptDownload(promptText);
+
+                    if (count > 0) {
+                        resolve(count);
+                        return;
+                    }
+
+                    if (i < 3) {
+                        sendLog("Download failed, retrying in 3s...", 'warning');
+                        await sleep(3000);
+                    }
+                }
+
+                // 3. If all fail, continue to next prompt (Resolve 0)
+                sendLog("Failed to download after 3 attempts. Skipping...", 'error');
+                resolve(0);
+                return;
             }
 
-            // --- LOGIC FLOW ---
-            
-            if (isReady) {
-                // 1. Gambar ditemukan
-                clearInterval(interval);
-                sendLog("Image Generated!", 'success');
-                
-                const count = await attemptDownloadOnBatch(newestBatch);
-                if (count > 0) {
-                    resolve(count);
-                } else {
-                    reject(new Error("Download buttons detected but click failed."));
-                }
-                return;
-            } 
-            
-            // 2. Timeout Logic (Fallback Force Download)
             if (elapsed > timeoutMs) {
                 clearInterval(interval);
-                
-                // Coba download paksa dari batch terakhir yang ada (fallback)
-                if (newestBatch) {
-                    const count = await attemptDownloadOnBatch(newestBatch);
-                    if (count > 0) {
-                        sendLog("Recovered via fallback download.", 'success');
-                        resolve(count);
-                    } else {
-                        sendLog("Image not generated / Failed.", 'error');
-                        reject(new Error("Failed to download after 30s timeout."));
-                    }
-                } else {
-                    sendLog("Image not generated.", 'error');
-                    reject(new Error("No batches found."));
-                }
+                sendLog("Timeout waiting for image generation.", 'error');
+                reject(new Error("Timeout: Image did not appear in time."));
                 return;
             }
 
-            // 3. Logging Berkala (Setiap 5 detik jika belum ready)
             if (now >= nextLogTime) {
-                sendLog("Checking Generated Image.....", 'step');
-                // Jika batch belum bertambah atau tombol belum ada
-                if (!isReady && elapsed > 1000) { 
-                    sendLog("Image not generated", 'info');
-                    sendLog("Checking Generated Image.....", 'step');
-                }
+                sendLog(`Waiting... (Img count: ${status.count})`, 'step');
                 nextLogTime = now + 5000;
             }
 
-        }, 2000); // Cek teknis tiap 2 detik
+        }, 2000);
     });
 }
 
@@ -235,36 +270,33 @@ async function pollAndDownload(initialBatchCount, timeoutMs = 30000) { // 30 Det
 // --- MAIN MESSAGE LISTENER ---
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "PROCESS_PROMPT") {
-    (async () => {
-      try {
-        // Hitung batch sebelum klik generate
-        const initialBatches = queryAllDeepShadow('firefly-image-generation-batch');
-        const initialBatchCount = initialBatches.length;
-        
-        await setPrompt(request.prompt);
-        await clickGenerate();
-        
-        // Wait max 30 seconds
-        const count = await pollAndDownload(initialBatchCount, 30000);
-        
-        sendLog(`Success!`, 'success');
-        sendResponse({ status: "success", count: count });
+    if (request.action === "PROCESS_PROMPT") {
+        (async () => {
+            try {
+                // Hitung baseline image count
+                const initialImages = queryAllDeepShadow('img');
+                const initialCount = initialImages.length;
+                sendLog(`Baseline images: ${initialCount}`, 'info');
 
-        // Random Cooldown (1-3 detik)
-        const waitTime = Math.floor(Math.random() * 2000) + 1000;
-        // sendLog(`Waiting ${waitTime}ms...`); 
-        await sleep(waitTime);
+                await setPrompt(request.prompt);
+                await clickGenerate();
 
-      } catch (error) {
-        console.error("Automation Error:", error);
-        // Error message sudah dikirim di dalam pollAndDownload biasanya
-        if (!error.message.includes("Failed to download")) {
-            sendLog(`${error.message}`, 'error');
-        }
-        sendResponse({ status: "error", message: error.message });
-      }
-    })();
-    return true;
-  }
+                const count = await pollAndDownload(request.prompt, initialCount, 45000);
+
+                sendLog(`Success! Downloaded ${count} images.`, 'success');
+                sendResponse({ status: "success", count: count });
+
+                const waitTime = Math.floor(Math.random() * 3000) + 2000;
+                await sleep(waitTime);
+
+            } catch (error) {
+                console.error("Automation Error:", error);
+                if (!error.message.includes("Timeout")) {
+                    sendLog(`${error.message}`, 'error');
+                }
+                sendResponse({ status: "error", message: error.message });
+            }
+        })();
+        return true;
+    }
 });
